@@ -23,8 +23,11 @@ public sealed class Protobuf
     public string? AssemblyName { get; init; }
     public string? Namespace    { get; init; }
 
-    public string FileName =>
-        _fileName ??= $"{string.Join('_', TopLevels.Select(static topLevel => topLevel.Name))}.proto";
+    public string FileName
+    {
+        get => _fileName ??= $"{string.Join('_', TopLevels.Select(static topLevel => topLevel.Name))}.proto";
+        set => _fileName = value;
+    }
 
     public HashSet<string> Imports =>
         _imports ??= [];

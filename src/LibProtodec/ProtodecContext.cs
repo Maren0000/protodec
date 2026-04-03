@@ -26,13 +26,16 @@ public delegate bool NameLookupFunc(string name, [MaybeNullWhen(false)] out stri
 // ReSharper disable ClassWithVirtualMembersNeverInherited.Global, MemberCanBePrivate.Global, MemberCanBeProtected.Global, PropertyCanBeMadeInitOnly.Global
 public class ProtodecContext
 {
-    private readonly Dictionary<string, TopLevel> _parsed = [];
+    private readonly Dictionary<string, TopLevel>  _parsed            = [];
+    private readonly Dictionary<string, Protobuf> _namespaceProtobufs = [];
 
     public readonly List<Protobuf> Protobufs = [];
 
     public ILogger<ProtodecContext>? Logger { get; set; }
 
     public NameLookupFunc? NameLookup { get; set; }
+
+    public bool GroupByNamespace { get; set; }
 
     public void WriteAllTo(IndentedTextWriter writer)
     {
@@ -496,6 +499,13 @@ public class ProtodecContext
 
     protected Protobuf NewProtobuf(ICilType topLevelType, TopLevel topLevel)
     {
+        if (GroupByNamespace && topLevelType.Namespace is string ns && _namespaceProtobufs.TryGetValue(ns, out Protobuf? existing))
+        {
+            topLevel.Protobuf = existing;
+            existing.TopLevels.Add(topLevel);
+            return existing;
+        }
+
         Protobuf protobuf = new()
         {
             AssemblyName = topLevelType.DeclaringAssemblyName,
@@ -505,6 +515,12 @@ public class ProtodecContext
         topLevel.Protobuf = protobuf;
         protobuf.TopLevels.Add(topLevel);
         Protobufs.Add(protobuf);
+
+        if (GroupByNamespace && topLevelType.Namespace is not null)
+        {
+            _namespaceProtobufs[topLevelType.Namespace] = protobuf;
+            protobuf.FileName = $"{topLevelType.Namespace}.proto";
+        }
 
         return protobuf;
     }

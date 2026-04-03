@@ -37,12 +37,10 @@ public sealed class Il2CppAssemblyLoader : CilAssemblyLoader
                       .LogLoadedTypeAndAssemblyCount(this.LoadedTypes.Count, LibCpp2IlMain.TheMetadata.imageDefinitions.Length);
     }
 
-    protected override ICilType FindType(string typeFullName, string assemblySimpleName)
+    protected override ICilType? FindType(string typeFullName, string assemblySimpleName)
     {
         Il2CppTypeDefinition? type = LibCpp2IlReflection.GetTypeByFullName(typeFullName);
-        Guard.IsNotNull(type);
-
-        return Il2CppType.GetOrCreate(type);
+        return type is null ? null : Il2CppType.GetOrCreate(type);
     }
 
     private sealed class LibCpp2IlLogger(ILogger logger) : LogWriter

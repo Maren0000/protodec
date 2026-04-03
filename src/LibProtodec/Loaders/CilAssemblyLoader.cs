@@ -17,7 +17,9 @@ public abstract class CilAssemblyLoader
 
     public IEnumerable<ICilType> GetProtobufMessageTypes()
     {
-        ICilType iMessage = FindType("Google.Protobuf.IMessage", "Google.Protobuf");
+        ICilType? iMessage = FindType("Google.Protobuf.IMessage", "Google.Protobuf");
+        if (iMessage is null)
+            return [];
 
         return LoadedTypes.Where(
             type => type is { IsNested: false, IsSealed: true }
@@ -27,7 +29,9 @@ public abstract class CilAssemblyLoader
 
     public IEnumerable<ICilType> GetProtobufServiceClientTypes()
     {
-        ICilType clientBase = FindType("Grpc.Core.ClientBase", "Grpc.Core.Api");
+        ICilType? clientBase = FindType("Grpc.Core.ClientBase", "Grpc.Core.Api");
+        if (clientBase is null)
+            return [];
 
         return LoadedTypes.Where(
             type => type is { IsNested: true, IsAbstract: false }
@@ -36,12 +40,14 @@ public abstract class CilAssemblyLoader
 
     public IEnumerable<ICilType> GetProtobufServiceServerTypes()
     {
-        ICilType bindServiceMethodAttribute = FindType("Grpc.Core.BindServiceMethodAttribute", "Grpc.Core.Api");
+        ICilType? bindServiceMethodAttribute = FindType("Grpc.Core.BindServiceMethodAttribute", "Grpc.Core.Api");
+        if (bindServiceMethodAttribute is null)
+            return [];
 
         return LoadedTypes.Where(
             type => type is { IsNested: true, IsAbstract: true, DeclaringType: { IsNested: false, IsSealed: true, IsAbstract: true } }
                  && type.CustomAttributes.Any(attribute => attribute.Type == bindServiceMethodAttribute));
     }
 
-    protected abstract ICilType FindType(string typeFullName, string assemblySimpleName);
+    protected abstract ICilType? FindType(string typeFullName, string assemblySimpleName);
 }

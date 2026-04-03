@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using CommunityToolkit.Diagnostics;
 using LibProtodec.Models.Cil;
 using LibProtodec.Models.Cil.Clr;
 using Microsoft.Extensions.Logging;
@@ -43,16 +42,14 @@ public sealed class ClrAssemblyLoader : CilAssemblyLoader, IDisposable
         logger?.LogLoadedTypeAndAssemblyCount(this.LoadedTypes.Count, LoadContext.GetAssemblies().Count());
     }
 
-    protected override ICilType FindType(string typeFullName, string assemblySimpleName)
+    protected override ICilType? FindType(string typeFullName, string assemblySimpleName)
     {
         ICilType? type = this.LoadedTypes.SingleOrDefault(type => type?.FullName == typeFullName, null);
         if (type is not null)
             return type;
 
         Type? clrType = LoadContext.LoadFromAssemblyName(assemblySimpleName).GetType(typeFullName);
-        Guard.IsNotNull(clrType);
-
-        return ClrType.GetOrCreate(clrType);
+        return clrType is null ? null : ClrType.GetOrCreate(clrType);
     }
 
     public void Dispose() =>

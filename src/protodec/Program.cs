@@ -33,6 +33,7 @@ internal sealed class Commands
     /// <param name="skipEnums">Skip parsing enums and replace references to them with int32.</param>
     /// <param name="includePropertiesWithoutNonUserCodeAttribute">Includes properties that aren't decorated with `DebuggerNonUserCode` when parsing.</param>
     /// <param name="includeServiceMethodsWithoutGeneratedCodeAttribute">Includes methods that aren't decorated with `GeneratedCode("grpc_csharp_plugin")` when parsing gRPC services.</param>
+    /// <param name="groupByNamespace">Group output files by C# namespace instead of one file per class.</param>
     [Command("")]
     public void Root(
         [Argument] string targetPath,
@@ -42,6 +43,7 @@ internal sealed class Commands
         bool              includeServiceMethodsWithoutGeneratedCodeAttribute,
         bool              parseServiceServers,
         bool              parseServiceClients,
+        bool              groupByNamespace,
         LogLevel          logLevel = LogLevel.Information)
     {
         using ILoggerFactory loggerFactory = CreateLoggerFactory(logLevel);
@@ -58,6 +60,7 @@ internal sealed class Commands
             includeServiceMethodsWithoutGeneratedCodeAttribute,
             parseServiceServers,
             parseServiceClients,
+            groupByNamespace,
             loggerFactory,
             logger);
     }
@@ -75,6 +78,7 @@ internal sealed class Commands
     /// <param name="skipEnums">Skip parsing enums and replace references to them with int32.</param>
     /// <param name="includePropertiesWithoutNonUserCodeAttribute">Includes properties that aren't decorated with `DebuggerNonUserCode` when parsing.</param>
     /// <param name="includeServiceMethodsWithoutGeneratedCodeAttribute">Includes methods that aren't decorated with `GeneratedCode("grpc_csharp_plugin")` when parsing gRPC services.</param>
+    /// <param name="groupByNamespace">Group output files by C# namespace instead of one file per class.</param>
     [Command("il2cpp")]
     public void Il2Cpp(
         [Argument] string gameAssembly,
@@ -86,6 +90,7 @@ internal sealed class Commands
         bool              includeServiceMethodsWithoutGeneratedCodeAttribute,
         bool              parseServiceServers,
         bool              parseServiceClients,
+        bool              groupByNamespace,
         LogLevel          logLevel = LogLevel.Information)
     {
         if (!UnityVersion.TryParse(unityVersion, out UnityVersion unityVer, out _))
@@ -111,6 +116,7 @@ internal sealed class Commands
             includeServiceMethodsWithoutGeneratedCodeAttribute,
             parseServiceServers,
             parseServiceClients,
+            groupByNamespace,
             loggerFactory,
             logger);
     }
@@ -123,6 +129,7 @@ internal sealed class Commands
         bool              includeServiceMethodsWithoutGeneratedCodeAttribute,
         bool              parseServiceServers,
         bool              parseServiceClients,
+        bool              groupByNamespace,
         ILoggerFactory    loggerFactory,
         ILogger           logger)
     {
@@ -136,7 +143,8 @@ internal sealed class Commands
 
         ProtodecContext ctx = new()
         {
-            Logger = loggerFactory.CreateLogger<ProtodecContext>()
+            Logger           = loggerFactory.CreateLogger<ProtodecContext>(),
+            GroupByNamespace = groupByNamespace
         };
 
         logger.LogInformation("Parsing Protobuf message types...");
@@ -173,10 +181,11 @@ internal sealed class Commands
             {
                 // This workaround stops files from being overwritten in the case of a naming conflict,
                 // however the actual conflict will still have to be resolved manually
+                string baseName = Path.GetFileNameWithoutExtension(protobuf.FileName);
                 string fileName = protobuf.FileName;
-                while (!writtenFiles.Add(fileName))
+                for (int i = 2; !writtenFiles.Add(fileName); i++)
                 {
-                    fileName = '_' + fileName;
+                    fileName = $"{baseName}_{i}.proto";
                 }
 
                 string protobufPath = Path.Join(outPath, fileName);
